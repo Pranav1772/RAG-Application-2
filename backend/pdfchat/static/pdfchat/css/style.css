@@ -84,9 +84,10 @@ button:hover {
     position: absolute;
     right: 0;
     top: 0;
-    background: #ec417a;
     width: 40px;
     height: 100%;
+    background: transparent;
+    background: linear-gradient(90deg, rgba(32, 33, 35, 0) 0%, rgba(32, 33, 35, 1) 100%);
 }
 
 .edit-buttons {
@@ -125,4 +126,26 @@ i.user-icon {
 .user-menu button {
     width: 100%;
     border: none;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: transparent;
+}
+
+:hover::-webkit-scrollbar-thumb {
+    background-color: #ececf196;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #ececf1;
+    border-radius: 5px;
 }
