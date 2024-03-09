@@ -34,14 +34,14 @@ for (const model of models) {
 
 const message_box = document.querySelector("#message");
 
-message_box.addEventListener("keyup", function () {
-    message_box.style.height = "auto";
-    let height = message_box.scrollHeight + 2;
-    if (height > 200) {
-        height = 200;
-    }
-    message_box.style.height = height + "px";
-});
+// message_box.addEventListener("keyup", function () {
+//     message_box.style.height = "auto";
+//     let height = message_box.scrollHeight + 2;
+//     if (height > 200) {
+//         height = 200;
+//     }
+//     message_box.style.height = height + "px";
+// });
 
 function show_view(view_selector) {
     document.querySelectorAll(".view").forEach((view) => {
@@ -81,7 +81,36 @@ document.addEventListener("DOMContentLoaded", function () {
         // Insert the new conversation under the "Today" grouping
         todayGrouping.parentNode.insertBefore(newConversation, todayGrouping.nextSibling);
 
-        conversationButton;
+        conversationButton.addEventListener("click", function () {
+            var mainTag = document.querySelector("main");
+
+            // Your HTML code to be added
+            var dynamicHTML = `
+                <div class="view new-chat-view">
+                    <div class="logo">ChatWTF</div>
+                </div>
+                <label for="images" class="drop-container" id="dropcontainer">
+  <span class="drop-title">Drop files here</span>
+  or
+  <input type="file" id="images" accept="image/*" required>
+</label>
+                <div class="view conversation-view">
+                    <!-- <div class="model-name"><i class="fa fa-bolt"></i> Default (GPT-3.5)</div> -->
+                </div>
+
+                <div id="message-form">
+                    <div class="message-wrapper">
+                        <textarea id="message" rows="1" placeholder="Send a message"></textarea>
+                        <button class="send-button"><i class="fa fa-paper-plane"></i></button>
+                    </div>
+                    <div class="disclaimer">This is a ChatGPT UI Clone for personal use and educational purposes only.</div>
+                </div>
+            `;
+
+            // Append the dynamic HTML to the main tag
+            mainTag.innerHTML = dynamicHTML;
+        });
+        conversationButton.click();
     }
 
     // Event listener for the "New chat" button
@@ -149,7 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch((error) => console.error("Error loading chat messages:", error));
     }
 
-    // Event listener for the "New chat" button
+    // Event listener for the "conversationButtons" button
     var conversationButtons = document.querySelectorAll(".conversation-button");
     conversationButtons.forEach(function (button) {
         button.addEventListener("click", function () {
