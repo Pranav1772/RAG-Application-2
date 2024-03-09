@@ -51,12 +51,112 @@ function show_view(view_selector) {
     document.querySelector(view_selector).style.display = "flex";
 }
 
-new_chat_button.addEventListener("click", function () {
-    show_view(".new-chat-view");
+document.addEventListener("DOMContentLoaded", function () {
+    // Function to create a new conversation button
+    function createNewConversation(chatId, title) {
+        // Create a new list item for the conversation
+        var newConversation = document.createElement("li");
+
+        // Create a button for the conversation
+        var conversationButton = document.createElement("button");
+        conversationButton.className = "conversation-button";
+        conversationButton.dataset.chatId = chatId;
+        conversationButton.innerHTML = `<i class="fa fa-message fa-regular"></i> ${title}`;
+
+        // Create elements for fading effect and edit buttons
+        var fade = document.createElement("div");
+        fade.className = "fade";
+        var editButtons = document.createElement("div");
+        editButtons.className = "edit-buttons";
+        editButtons.innerHTML = '<button><i class="fa fa-edit"></i></button>' + '<button><i class="fa fa-trash"></i></button>';
+
+        // Append elements to the new conversation list item
+        newConversation.appendChild(conversationButton);
+        newConversation.appendChild(fade);
+        newConversation.appendChild(editButtons);
+
+        // Find the "Today" grouping
+        var todayGrouping = document.querySelector(".conversations .grouping");
+
+        // Insert the new conversation under the "Today" grouping
+        todayGrouping.parentNode.insertBefore(newConversation, todayGrouping.nextSibling);
+
+        conversationButton;
+    }
+
+    // Event listener for the "New chat" button
+    var newChatButton = document.querySelector(".new-chat");
+    newChatButton.addEventListener("click", function () {
+        axios
+            .get("/new_chat/")
+            .then((response) => {
+                createNewConversation(response.data.id, response.data.title);
+            })
+            .catch((error) => console.error("Error fetching conversation:", error));
+    });
 });
 
 document.querySelectorAll(".conversation-button").forEach((button) => {
     button.addEventListener("click", function () {
         show_view(".conversation-view");
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Function to create a message element
+    function createMessageElement(role, content) {
+        var messageElement = document.createElement("div");
+        messageElement.className = role + " message";
+
+        var identityElement = document.createElement("div");
+        identityElement.className = "identity";
+        var userIconElement = document.createElement("i");
+        userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
+        userIconElement.textContent = role === "user" ? "u" : "G";
+        identityElement.appendChild(userIconElement);
+
+        var contentElement = document.createElement("div");
+        contentElement.className = "content";
+        var paragraphElement = document.createElement("p");
+        paragraphElement.textContent = content;
+        contentElement.appendChild(paragraphElement);
+
+        messageElement.appendChild(identityElement);
+        messageElement.appendChild(contentElement);
+
+        return messageElement;
+    }
+
+    // Function to load chat messages
+    function loadChatMessages(chatId) {
+        // Make a request to the Django backend using Axios
+        axios
+            .get(`/load_chat/${chatId}/`)
+            .then((response) => {
+                // Get the conversation view element
+                var conversationView = document.querySelector(".view.conversation-view");
+
+                // Clear existing messages
+                conversationView.innerHTML = "";
+
+                // Iterate through the received messages and create message elements
+                response.data.forEach((message) => {
+                    var messageElement = createMessageElement(message.role, message.content);
+                    console.log("here");
+                    conversationView.appendChild(messageElement);
+                });
+            })
+            .catch((error) => console.error("Error loading chat messages:", error));
+    }
+
+    // Event listener for the "New chat" button
+    var conversationButtons = document.querySelectorAll(".conversation-button");
+    conversationButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            var chatId = button.dataset.chatId;
+            chatId = 1;
+            // Load chat messages based on the chatId
+            loadChatMessages(chatId);
+        });
     });
 });
