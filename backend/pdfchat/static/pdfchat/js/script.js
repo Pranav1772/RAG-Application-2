@@ -34,22 +34,14 @@ for (const model of models) {
 
 const message_box = document.querySelector("#message");
 
-// message_box.addEventListener("keyup", function () {
-//     message_box.style.height = "auto";
-//     let height = message_box.scrollHeight + 2;
-//     if (height > 200) {
-//         height = 200;
-//     }
-//     message_box.style.height = height + "px";
-// });
-
-function show_view(view_selector) {
-    document.querySelectorAll(".view").forEach((view) => {
-        view.style.display = "none";
-    });
-
-    document.querySelector(view_selector).style.display = "flex";
-}
+message_box.addEventListener("keyup", function () {
+    message_box.style.height = "auto";
+    let height = message_box.scrollHeight + 2;
+    if (height > 200) {
+        height = 200;
+    }
+    message_box.style.height = height + "px";
+});
 
 document.addEventListener("DOMContentLoaded", function () {
     // Function to create a new conversation button
@@ -89,16 +81,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="view new-chat-view">
                     <div class="logo">ChatWTF</div>
                 </div>
-                <label for="images" class="drop-container" id="dropcontainer">
-  <span class="drop-title">Drop files here</span>
-  or
-  <input type="file" id="images" accept="image/*" required>
-</label>
                 <div class="view conversation-view">
                     <!-- <div class="model-name"><i class="fa fa-bolt"></i> Default (GPT-3.5)</div> -->
                 </div>
 
                 <div id="message-form">
+                <input type="hidden" name="chat_id" value="{{ chat_id }}" />
+                <div class="upload-field">
+                    Upload file: <input type="file" id="upload-file" name="file" />
+                </div>
                     <div class="message-wrapper">
                         <textarea id="message" rows="1" placeholder="Send a message"></textarea>
                         <button class="send-button"><i class="fa fa-paper-plane"></i></button>
@@ -125,67 +116,127 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+//Load conversations with event listeners to the conversation buttons
+function show_view(view_selector) {
+    document.querySelectorAll(".view").forEach((view) => {
+        view.style.display = "none";
+    });
+
+    document.querySelector(view_selector).style.display = "flex";
+}
+
 document.querySelectorAll(".conversation-button").forEach((button) => {
     button.addEventListener("click", function () {
         show_view(".conversation-view");
+        var chatId = button.dataset.chatId;
+        chatId = 1;
+        // Load chat messages based on the chatId
+        loadChatMessages(chatId);
     });
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    // Function to create a message element
-    function createMessageElement(role, content) {
-        var messageElement = document.createElement("div");
-        messageElement.className = role + " message";
+// Function to create a message element
+function createMessageElement(role, content) {
+    var messageElement = document.createElement("div");
+    messageElement.className = role + " message";
 
-        var identityElement = document.createElement("div");
-        identityElement.className = "identity";
-        var userIconElement = document.createElement("i");
-        userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
-        userIconElement.textContent = role === "user" ? "u" : "G";
-        identityElement.appendChild(userIconElement);
+    var identityElement = document.createElement("div");
+    identityElement.className = "identity";
+    var userIconElement = document.createElement("i");
+    userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
+    userIconElement.textContent = role === "user" ? "u" : "G";
+    identityElement.appendChild(userIconElement);
 
-        var contentElement = document.createElement("div");
-        contentElement.className = "content";
-        var paragraphElement = document.createElement("p");
-        paragraphElement.textContent = content;
-        contentElement.appendChild(paragraphElement);
+    var contentElement = document.createElement("div");
+    contentElement.className = "content";
+    var paragraphElement = document.createElement("p");
+    paragraphElement.textContent = content;
+    contentElement.appendChild(paragraphElement);
+    console.log("here 2");
+    messageElement.appendChild(identityElement);
+    messageElement.appendChild(contentElement);
 
-        messageElement.appendChild(identityElement);
-        messageElement.appendChild(contentElement);
+    return messageElement;
+}
 
-        return messageElement;
-    }
+// Function to load chat messages
+function loadChatMessages(chatId) {
+    // Make a request to the Django backend using Axios
+    console.log("this works");
+    axios
+        .get(`/load_chat/${chatId}/`)
+        .then((response) => {
+            // Get the conversation view element
+            var conversationView = document.querySelector(".view.conversation-view");
 
-    // Function to load chat messages
-    function loadChatMessages(chatId) {
-        // Make a request to the Django backend using Axios
-        axios
-            .get(`/load_chat/${chatId}/`)
-            .then((response) => {
-                // Get the conversation view element
-                var conversationView = document.querySelector(".view.conversation-view");
+            // Clear existing messages
+            conversationView.innerHTML = "";
 
-                // Clear existing messages
-                conversationView.innerHTML = "";
+            // Iterate through the received messages and create message elements
+            response.data.forEach((message) => {
+                var messageElement = createMessageElement(message.role, message.content);
+                console.log("here");
+                conversationView.appendChild(messageElement);
+            });
+        })
+        .catch((error) => console.error("Error loading chat messages:", error));
+}
 
-                // Iterate through the received messages and create message elements
-                response.data.forEach((message) => {
-                    var messageElement = createMessageElement(message.role, message.content);
-                    console.log("here");
-                    conversationView.appendChild(messageElement);
-                });
-            })
-            .catch((error) => console.error("Error loading chat messages:", error));
-    }
+// document.addEventListener("DOMContentLoaded", function () {
+//     // Event listener for the "conversationButtons" button
+//     var conversationButtons = document.querySelectorAll(".conversation-button");
+//     conversationButtons.forEach(function (button) {
+//         button.addEventListener("click", function () {
+//             var chatId = button.dataset.chatId;
+//             chatId = 1;
+//             // Load chat messages based on the chatId
+//             loadChatMessages(chatId);
+//         });
+//     });
 
-    // Event listener for the "conversationButtons" button
-    var conversationButtons = document.querySelectorAll(".conversation-button");
-    conversationButtons.forEach(function (button) {
-        button.addEventListener("click", function () {
-            var chatId = button.dataset.chatId;
-            chatId = 1;
-            // Load chat messages based on the chatId
-            loadChatMessages(chatId);
-        });
-    });
-});
+//     // Function to create a message element
+//     function createMessageElement(role, content) {
+//         var messageElement = document.createElement("div");
+//         messageElement.className = role + " message";
+
+//         var identityElement = document.createElement("div");
+//         identityElement.className = "identity";
+//         var userIconElement = document.createElement("i");
+//         userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
+//         userIconElement.textContent = role === "user" ? "u" : "G";
+//         identityElement.appendChild(userIconElement);
+
+//         var contentElement = document.createElement("div");
+//         contentElement.className = "content";
+//         var paragraphElement = document.createElement("p");
+//         paragraphElement.textContent = content;
+//         contentElement.appendChild(paragraphElement);
+
+//         messageElement.appendChild(identityElement);
+//         messageElement.appendChild(contentElement);
+
+//         return messageElement;
+//     }
+
+//     // Function to load chat messages
+//     function loadChatMessages(chatId) {
+//         // Make a request to the Django backend using Axios
+//         axios
+//             .get(`/load_chat/${chatId}/`)
+//             .then((response) => {
+//                 // Get the conversation view element
+//                 var conversationView = document.querySelector(".view.conversation-view");
+
+//                 // Clear existing messages
+//                 conversationView.innerHTML = "";
+
+//                 // Iterate through the received messages and create message elements
+//                 response.data.forEach((message) => {
+//                     var messageElement = createMessageElement(message.role, message.content);
+//                     console.log("here");
+//                     conversationView.appendChild(messageElement);
+//                 });
+//             })
+//             .catch((error) => console.error("Error loading chat messages:", error));
+//     }
+// });
