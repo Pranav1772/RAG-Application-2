@@ -44,6 +44,77 @@ message_box.addEventListener("keyup", function () {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
+    // Event listener for the "New chat" button
+    var newChatButton = document.querySelector(".new-chat");
+    newChatButton.addEventListener("click", function () {
+        var mainTag = document.querySelector("main");
+
+        // Your HTML code to be added
+        var dynamicHTML = `
+                <div id="message-form">
+                    <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
+                        <div class="upload-field">
+                            Upload file: <input type="file" id="upload-file" name="file" />
+                            <button type="submit" id="hidden-submit-button" ></button>
+                        </div>                       
+                    </form>
+                </div>
+            `;
+
+        // Append the dynamic HTML to the main tag
+        mainTag.innerHTML = dynamicHTML;
+        // Get the dynamically generated uploadForm
+        var uploadForm = document.getElementById("upload-form");
+
+        // Attach the event listener to the dynamically generated form
+        uploadForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            var fileInput = document.getElementById("upload-file");
+            var file = fileInput.files[0];
+
+            if (file) {
+                // Fetch the CSRF token from the cookie
+                var csrfToken = getCookie("csrftoken");
+
+                var formData = new FormData();
+                formData.append("file", file);
+
+                axios
+                    .post("/new_chat/", formData, {
+                        headers: {
+                            "X-CSRFToken": csrfToken,
+                        },
+                    })
+                    .then((response) => {
+                        // Handle the response from the server (if needed)
+                        console.log("File uploaded successfully:", response.data);
+                        createNewConversation(response.data.id, response.data.title);
+                        // Now, you can create a new conversation or perform other actions
+                    })
+                    .catch((error) => console.error("Error uploading file:", error));
+                document.getElementById("hidden-submit-button").click();
+            } else {
+                console.log("Please select a file before creating a new chat.");
+            }
+        });
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                var cookies = document.cookie.split(";");
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    // Check if the cookie name matches the desired name
+                    if (cookie.substring(0, name.length + 1) === name + "=") {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+
     // Function to create a new conversation button
     function createNewConversation(chatId, title) {
         // Create a new list item for the conversation
@@ -75,8 +146,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         conversationButton.addEventListener("click", function () {
             var mainTag = document.querySelector("main");
-
             // Your HTML code to be added
+            mainTag.innerHTML = "";
             var dynamicHTML = `
                 <div class="view new-chat-view">
                     <div class="logo">ChatWTF</div>
@@ -84,36 +155,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="view conversation-view">
                     <!-- <div class="model-name"><i class="fa fa-bolt"></i> Default (GPT-3.5)</div> -->
                 </div>
-
                 <div id="message-form">
-                <input type="hidden" name="chat_id" value="{{ chat_id }}" />
-                <div class="upload-field">
-                    Upload file: <input type="file" id="upload-file" name="file" />
-                </div>
-                    <div class="message-wrapper">
-                        <textarea id="message" rows="1" placeholder="Send a message"></textarea>
-                        <button class="send-button"><i class="fa fa-paper-plane"></i></button>
-                    </div>
-                    <div class="disclaimer">This is a ChatGPT UI Clone for personal use and educational purposes only.</div>
+                        <div class="message-wrapper">
+                            <textarea id="message" rows="1" placeholder="Send a message"></textarea>
+                            <button class="send-button"><i class="fa fa-paper-plane"></i></button>
+                        </div>
+                        <div class="disclaimer">This is a ChatGPT UI Clone for personal use and educational purposes only.</div>
+                </form>
                 </div>
             `;
-
             // Append the dynamic HTML to the main tag
             mainTag.innerHTML = dynamicHTML;
         });
         conversationButton.click();
     }
-
-    // Event listener for the "New chat" button
-    var newChatButton = document.querySelector(".new-chat");
-    newChatButton.addEventListener("click", function () {
-        axios
-            .get("/new_chat/")
-            .then((response) => {
-                createNewConversation(response.data.id, response.data.title);
-            })
-            .catch((error) => console.error("Error fetching conversation:", error));
-    });
 });
 
 //Load conversations with event listeners to the conversation buttons
@@ -152,7 +207,6 @@ function createMessageElement(role, content) {
     var paragraphElement = document.createElement("p");
     paragraphElement.textContent = content;
     contentElement.appendChild(paragraphElement);
-    console.log("here 2");
     messageElement.appendChild(identityElement);
     messageElement.appendChild(contentElement);
 
@@ -162,7 +216,6 @@ function createMessageElement(role, content) {
 // Function to load chat messages
 function loadChatMessages(chatId) {
     // Make a request to the Django backend using Axios
-    console.log("this works");
     axios
         .get(`/load_chat/${chatId}/`)
         .then((response) => {
@@ -175,68 +228,8 @@ function loadChatMessages(chatId) {
             // Iterate through the received messages and create message elements
             response.data.forEach((message) => {
                 var messageElement = createMessageElement(message.role, message.content);
-                console.log("here");
                 conversationView.appendChild(messageElement);
             });
         })
         .catch((error) => console.error("Error loading chat messages:", error));
 }
-
-// document.addEventListener("DOMContentLoaded", function () {
-//     // Event listener for the "conversationButtons" button
-//     var conversationButtons = document.querySelectorAll(".conversation-button");
-//     conversationButtons.forEach(function (button) {
-//         button.addEventListener("click", function () {
-//             var chatId = button.dataset.chatId;
-//             chatId = 1;
-//             // Load chat messages based on the chatId
-//             loadChatMessages(chatId);
-//         });
-//     });
-
-//     // Function to create a message element
-//     function createMessageElement(role, content) {
-//         var messageElement = document.createElement("div");
-//         messageElement.className = role + " message";
-
-//         var identityElement = document.createElement("div");
-//         identityElement.className = "identity";
-//         var userIconElement = document.createElement("i");
-//         userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
-//         userIconElement.textContent = role === "user" ? "u" : "G";
-//         identityElement.appendChild(userIconElement);
-
-//         var contentElement = document.createElement("div");
-//         contentElement.className = "content";
-//         var paragraphElement = document.createElement("p");
-//         paragraphElement.textContent = content;
-//         contentElement.appendChild(paragraphElement);
-
-//         messageElement.appendChild(identityElement);
-//         messageElement.appendChild(contentElement);
-
-//         return messageElement;
-//     }
-
-//     // Function to load chat messages
-//     function loadChatMessages(chatId) {
-//         // Make a request to the Django backend using Axios
-//         axios
-//             .get(`/load_chat/${chatId}/`)
-//             .then((response) => {
-//                 // Get the conversation view element
-//                 var conversationView = document.querySelector(".view.conversation-view");
-
-//                 // Clear existing messages
-//                 conversationView.innerHTML = "";
-
-//                 // Iterate through the received messages and create message elements
-//                 response.data.forEach((message) => {
-//                     var messageElement = createMessageElement(message.role, message.content);
-//                     console.log("here");
-//                     conversationView.appendChild(messageElement);
-//                 });
-//             })
-//             .catch((error) => console.error("Error loading chat messages:", error));
-//     }
-// });
