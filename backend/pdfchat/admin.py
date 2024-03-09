@@ -1,4 +1,4 @@
 from django.contrib import admin
-from .models import PDF_Details
+from .models import File_Details
 
-admin.site.register(PDF_Details)
+admin.site.register(File_Details)

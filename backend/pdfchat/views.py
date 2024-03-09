@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import PDF_Details
+from .models import File_Details
 
 from django.conf import settings
 import os
@@ -15,7 +15,7 @@ def newChat(request):
         if pdf_file:
             try:
                 # Create a new PDF_Details instance and save the file
-                pdf_details = PDF_Details(file_name=pdf_file.name)
+                pdf_details = File_Details(file_name=pdf_file.name)
                 pdf_details.file.save(pdf_file.name, pdf_file)
 
                     # Respond with JSON data
