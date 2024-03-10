@@ -7,7 +7,16 @@ import os
 
 # Create your views here.
 def homepage(request):
-    return render(request,'pdfchat/index.html')
+   # Query all records from PDF_Details model
+    file_details_list = File_Details.objects.all()
+
+    # Prepare a list of dictionaries with 'id' and 'title'
+    my_data_list = [
+        {'id': file_detail._id, 'title': file_detail.file_name}
+        for file_detail in file_details_list
+    ]
+    context = {'my_data_list': my_data_list}
+    return render(request,'pdfchat/index.html',context)
 
 def newChat(request):
     if request.method == 'POST':
@@ -38,11 +47,3 @@ def loadChat(request,id):
     ]
     print(id)
     return JsonResponse(my_data_list,safe=False)
-
-def conversations(request):
-    my_data_list = [
-        {'id': 1, 'title': 'Something'},
-        {'id': 2, 'title': 'Something'},
-        {'id': 3, 'title': 'Something'}
-    ]
-    return JsonResponse(my_data_list)
