@@ -45,5 +45,13 @@ def loadChat(request,id):
         {'role': 'user', 'content': 'what is the timing right now'},
         {'role': 'assistant', 'content': "It's 10:30 PM"},
     ]
-    print(id)
-    return JsonResponse(my_data_list,safe=False)
+    response_data = {'id': id, 'messages': my_data_list}
+    return JsonResponse(response_data,safe=False)
+
+def getResponse(request):
+    if request.method == 'POST':
+        chat_id = request.POST.get('chatId')
+        message_text = request.POST.get('messageText')
+        print(chat_id,message_text)
+        return JsonResponse({'status': 'Data received successfully'})
+    return JsonResponse({'error': 'Invalid request method'})

@@ -1,235 +1,255 @@
-const sidebar = document.querySelector("#sidebar");
-const hide_sidebar = document.querySelector(".hide-sidebar");
-const new_chat_button = document.querySelector(".new-chat");
-
-hide_sidebar.addEventListener("click", function () {
-    sidebar.classList.toggle("hidden");
-});
-
-const user_menu = document.querySelector(".user-menu ul");
-const show_user_menu = document.querySelector(".user-menu button");
-
-show_user_menu.addEventListener("click", function () {
-    if (user_menu.classList.contains("show")) {
-        user_menu.classList.toggle("show");
-        setTimeout(function () {
-            user_menu.classList.toggle("show-animate");
-        }, 200);
-    } else {
-        user_menu.classList.toggle("show-animate");
-        setTimeout(function () {
-            user_menu.classList.toggle("show");
-        }, 50);
-    }
-});
-
-const models = document.querySelectorAll(".model-selector button");
-
-for (const model of models) {
-    model.addEventListener("click", function () {
-        document.querySelector(".model-selector button.selected")?.classList.remove("selected");
-        model.classList.add("selected");
-    });
-}
-
-const message_box = document.querySelector("#message");
-
-message_box.addEventListener("keyup", function () {
-    message_box.style.height = "auto";
-    let height = message_box.scrollHeight + 2;
-    if (height > 200) {
-        height = 200;
-    }
-    message_box.style.height = height + "px";
-});
-
 document.addEventListener("DOMContentLoaded", function () {
-    // Event listener for the "New chat" button
-    var newChatButton = document.querySelector(".new-chat");
-    newChatButton.addEventListener("click", function () {
-        var mainTag = document.querySelector("main");
+    const sidebar = document.querySelector("#sidebar");
+    const hideSidebar = document.querySelector(".hide-sidebar");
+    const newChatButton = document.querySelector(".new-chat");
+    const userMenu = document.querySelector(".user-menu ul");
+    const showUserMenu = document.querySelector(".user-menu button");
+    const models = document.querySelectorAll(".model-selector button");
 
-        // Your HTML code to be added
-        var dynamicHTML = `
-                <div id="message-form">
-                    <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
-                        <div class="upload-field">
-                            Upload file: <input type="file" id="upload-file" name="file" />
-                            <button type="submit" id="hidden-submit-button" ></button>
-                        </div>                       
-                    </form>
-                </div>
-            `;
+    hideSidebar.addEventListener("click", () => sidebar.classList.toggle("hidden"));
 
-        // Append the dynamic HTML to the main tag
-        mainTag.innerHTML = dynamicHTML;
-        // Get the dynamically generated uploadForm
-        var uploadForm = document.getElementById("upload-form");
-
-        // Attach the event listener to the dynamically generated form
-        uploadForm.addEventListener("submit", function (event) {
-            event.preventDefault();
-
-            var fileInput = document.getElementById("upload-file");
-            var file = fileInput.files[0];
-
-            if (file) {
-                // Fetch the CSRF token from the cookie
-                var csrfToken = getCookie("csrftoken");
-
-                var formData = new FormData();
-                formData.append("file", file);
-
-                axios
-                    .post("/new_chat/", formData, {
-                        headers: {
-                            "X-CSRFToken": csrfToken,
-                        },
-                    })
-                    .then((response) => {
-                        // Handle the response from the server (if needed)
-                        console.log("File uploaded successfully:", response.data);
-                        createNewConversation(response.data.id, response.data.title);
-                        // Now, you can create a new conversation or perform other actions
-                    })
-                    .catch((error) => console.error("Error uploading file:", error));
-                document.getElementById("hidden-submit-button").click();
-            } else {
-                console.log("Please select a file before creating a new chat.");
-            }
-        });
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie !== "") {
-                var cookies = document.cookie.split(";");
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = cookies[i].trim();
-                    // Check if the cookie name matches the desired name
-                    if (cookie.substring(0, name.length + 1) === name + "=") {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+    showUserMenu.addEventListener("click", () => {
+        userMenu.classList.toggle("show");
+        setTimeout(() => userMenu.classList.toggle("show-animate"), 200);
     });
 
-    // Function to create a new conversation button
-    function createNewConversation(chatId, title) {
-        // Create a new list item for the conversation
-        var newConversation = document.createElement("li");
+    models.forEach((model) => {
+        model.addEventListener("click", () => {
+            const selectedButton = document.querySelector(".model-selector button.selected");
+            selectedButton?.classList.remove("selected");
+            model.classList.add("selected");
+        });
+    });
 
-        // Create a button for the conversation
-        var conversationButton = document.createElement("button");
+    newChatButton.addEventListener("click", handleNewChatButtonClick);
+
+    function handleNewChatButtonClick() {
+        const mainTag = document.querySelector("main");
+        const dynamicHTML = `
+            <div id="message-form">
+                <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
+                    <div class="upload-field">
+                        Upload file: <input type="file" id="upload-file" name="file" />
+                        <button type="submit" id="hidden-submit-button"></button>
+                    </div>                       
+                </form>
+            </div>
+        `;
+        mainTag.innerHTML = dynamicHTML;
+
+        const uploadForm = document.getElementById("upload-form");
+        uploadForm.addEventListener("submit", handleUploadFormSubmit);
+    }
+
+    function handleUploadFormSubmit(event) {
+        event.preventDefault();
+        const fileInput = document.getElementById("upload-file");
+        const file = fileInput.files[0];
+
+        if (file) {
+            const csrfToken = getCookie("csrftoken");
+            const formData = new FormData();
+            formData.append("file", file);
+
+            axios
+                .post("/new_chat/", formData, {
+                    headers: { "X-CSRFToken": csrfToken },
+                })
+                .then(handleUploadSuccess)
+                .catch(handleUploadError);
+
+            document.getElementById("hidden-submit-button").click();
+        } else {
+            console.log("Please select a file before creating a new chat.");
+        }
+    }
+
+    function handleUploadSuccess(response) {
+        console.log("File uploaded successfully:", response.data);
+        createNewConversation(response.data.id, response.data.title);
+    }
+
+    function handleUploadError(error) {
+        console.error("Error uploading file:", error);
+    }
+
+    function getCookie(name) {
+        const cookieValue = document.cookie.split("; ").find((cookie) => cookie.startsWith(`${name}=`));
+        return cookieValue ? decodeURIComponent(cookieValue.split("=")[1]) : null;
+    }
+
+    function createNewConversation(chatId, title) {
+        const conversationButton = document.createElement("button");
         conversationButton.className = "conversation-button";
         conversationButton.dataset.chatId = chatId;
         conversationButton.innerHTML = `<i class="fa fa-message fa-regular"></i> ${title}`;
 
-        // Create elements for fading effect and edit buttons
-        var fade = document.createElement("div");
-        fade.className = "fade";
-        var editButtons = document.createElement("div");
-        editButtons.className = "edit-buttons";
-        editButtons.innerHTML = '<button><i class="fa fa-edit"></i></button>' + '<button><i class="fa fa-trash"></i></button>';
-
-        // Append elements to the new conversation list item
+        const newConversation = document.createElement("li");
         newConversation.appendChild(conversationButton);
-        newConversation.appendChild(fade);
-        newConversation.appendChild(editButtons);
+        newConversation.appendChild(createFadeElement());
+        newConversation.appendChild(createEditButtonsElement());
 
-        // Find the "Today" grouping
-        var todayGrouping = document.querySelector(".conversations .grouping");
-
-        // Insert the new conversation under the "Today" grouping
+        const todayGrouping = document.querySelector(".conversations .grouping");
         todayGrouping.parentNode.insertBefore(newConversation, todayGrouping.nextSibling);
 
-        conversationButton.addEventListener("click", function () {
-            var mainTag = document.querySelector("main");
-            // Your HTML code to be added
-            mainTag.innerHTML = "";
-            var dynamicHTML = `
+        conversationButton.addEventListener("click", () => {
+            const mainTag = document.querySelector("main");
+            const dynamicHTML = `
                 <div class="view new-chat-view">
                     <div class="logo">ChatWTF</div>
                 </div>
-                <div class="view conversation-view">
-                    <!-- <div class="model-name"><i class="fa fa-bolt"></i> Default (GPT-3.5)</div> -->
-                </div>
+                <div class="view conversation-view"></div>
                 <div id="message-form">
-                        <div class="message-wrapper">
-                            <textarea id="message" rows="1" placeholder="Send a message"></textarea>
-                            <button class="send-button"><i class="fa fa-paper-plane"></i></button>
-                        </div>
-                        <div class="disclaimer">This is a ChatGPT UI Clone for personal use and educational purposes only.</div>
-                </form>
+                    <div class="message-wrapper">
+                        <input type="hidden" id="hidden-chatId" value="${chatId}" />
+                        <textarea id="message" rows="1" placeholder="Send a message"></textarea>
+                        <button class="send-button"><i class="fa fa-paper-plane"></i></button>
+                    </div>
+                    <div class="disclaimer">
+                        This is a ChatGPT UI Clone for personal use and educational purposes only.
+                    </div>
                 </div>
             `;
-            // Append the dynamic HTML to the main tag
             mainTag.innerHTML = dynamicHTML;
+            showView(".conversation-view");
+            const sendButton = document.querySelector(".send-button");
+            sendButton.addEventListener("click", handleSendButtonClick);
         });
+
         conversationButton.click();
     }
-});
 
-//Load conversations with event listeners to the conversation buttons
-function show_view(view_selector) {
-    document.querySelectorAll(".view").forEach((view) => {
-        view.style.display = "none";
+    function createFadeElement() {
+        const fade = document.createElement("div");
+        fade.className = "fade";
+        return fade;
+    }
+
+    function createEditButtonsElement() {
+        const editButtons = document.createElement("div");
+        editButtons.className = "edit-buttons";
+        editButtons.innerHTML = '<button><i class="fa fa-edit"></i></button>' + '<button><i class="fa fa-trash"></i></button>';
+        return editButtons;
+    }
+
+    function handleSendButtonClick() {
+        const hiddenChatId = document.getElementById("hidden-chatId").value;
+        const messageText = document.getElementById("message").value;
+        console.log(hiddenChatId, messageText);
+        const conversationView = document.querySelector(".view.conversation-view");
+        const userMessageElement = createMessageElement("user", messageText);
+        conversationView.appendChild(userMessageElement);
+
+        const csrfToken = getCookie("csrftoken");
+        console.log("this worked1");
+        const formData = new FormData();
+        formData.append("chatId", hiddenChatId);
+        formData.append("messageText", messageText);
+
+        axios
+            .post("/get_response/", formData, {
+                headers: { "X-CSRFToken": csrfToken },
+            })
+            .then(handleServerResponse)
+            .catch(handleServerError);
+        console.log("this worked2");
+    }
+
+    function handleServerResponse(response) {
+        const assistantMessageElement = createMessageElement("assistant", response.data.status);
+        const conversationView = document.querySelector(".view.conversation-view");
+        conversationView.appendChild(assistantMessageElement);
+        console.log("Server response:", response.data);
+    }
+
+    function handleServerError(error) {
+        console.error("Error sending data to the server:", error);
+    }
+
+    function showView(viewSelector) {
+        document.querySelectorAll(".view").forEach((view) => {
+            view.style.display = "none";
+        });
+
+        document.querySelector(viewSelector).style.display = "flex";
+    }
+
+    document.querySelectorAll(".conversation-button").forEach((button) => {
+        button.addEventListener("click", function () {
+            showView(".conversation-view");
+            const chatId = button.dataset.chatId;
+            console.log(chatId);
+            loadChatMessages(chatId);
+        });
     });
 
-    document.querySelector(view_selector).style.display = "flex";
-}
+    function loadChatMessages(chatId) {
+        axios
+            .get(`/load_chat/${chatId}/`)
+            .then((response) => {
+                const id = response.data.id;
+                const messages = response.data.messages;
 
-document.querySelectorAll(".conversation-button").forEach((button) => {
-    button.addEventListener("click", function () {
-        show_view(".conversation-view");
-        var chatId = button.dataset.chatId;
-        chatId = 1;
-        // Load chat messages based on the chatId
-        loadChatMessages(chatId);
-    });
+                const conversationView = document.querySelector(".view.conversation-view");
+                conversationView.innerHTML = "";
+
+                messages.forEach((message) => {
+                    const messageElement = createMessageElement(message.role, message.content);
+                    conversationView.appendChild(messageElement);
+                });
+
+                const messageWrapper = document.createElement("div");
+                messageWrapper.className = "message-wrapper";
+
+                const hiddenChatIdInput = document.createElement("input");
+                hiddenChatIdInput.type = "hidden";
+                hiddenChatIdInput.id = "hidden-chatId";
+                hiddenChatIdInput.value = id;
+
+                const textarea = document.createElement("textarea");
+                textarea.id = "message";
+                textarea.rows = "1";
+                textarea.placeholder = "Send a message";
+
+                const sendButton = document.createElement("button");
+                sendButton.className = "send-button";
+                sendButton.innerHTML = '<i class="fa fa-paper-plane"></i>';
+
+                messageWrapper.appendChild(hiddenChatIdInput);
+                messageWrapper.appendChild(textarea);
+                messageWrapper.appendChild(sendButton);
+
+                const messageForm = document.getElementById("message-form");
+                messageForm.innerHTML = "";
+                messageForm.appendChild(messageWrapper);
+
+                sendButton.addEventListener("click", handleSendButtonClick);
+            })
+            .catch((error) => console.error("Error loading chat messages:", error));
+    }
+
+    function createMessageElement(role, content) {
+        const messageElement = document.createElement("div");
+        messageElement.className = `${role} message`;
+
+        const identityElement = document.createElement("div");
+        identityElement.className = "identity";
+
+        const userIconElement = document.createElement("i");
+        userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
+        userIconElement.textContent = role === "user" ? "u" : "G";
+
+        const contentElement = document.createElement("div");
+        contentElement.className = "content";
+
+        const paragraphElement = document.createElement("p");
+        paragraphElement.textContent = content;
+
+        contentElement.appendChild(paragraphElement);
+        identityElement.appendChild(userIconElement);
+        messageElement.appendChild(identityElement);
+        messageElement.appendChild(contentElement);
+
+        return messageElement;
+    }
 });
-
-// Function to create a message element
-function createMessageElement(role, content) {
-    var messageElement = document.createElement("div");
-    messageElement.className = role + " message";
-
-    var identityElement = document.createElement("div");
-    identityElement.className = "identity";
-    var userIconElement = document.createElement("i");
-    userIconElement.className = role === "user" ? "user-icon" : "gpt user-icon";
-    userIconElement.textContent = role === "user" ? "u" : "G";
-    identityElement.appendChild(userIconElement);
-
-    var contentElement = document.createElement("div");
-    contentElement.className = "content";
-    var paragraphElement = document.createElement("p");
-    paragraphElement.textContent = content;
-    contentElement.appendChild(paragraphElement);
-    messageElement.appendChild(identityElement);
-    messageElement.appendChild(contentElement);
-
-    return messageElement;
-}
-
-// Function to load chat messages
-function loadChatMessages(chatId) {
-    // Make a request to the Django backend using Axios
-    axios
-        .get(`/load_chat/${chatId}/`)
-        .then((response) => {
-            // Get the conversation view element
-            var conversationView = document.querySelector(".view.conversation-view");
-
-            // Clear existing messages
-            conversationView.innerHTML = "";
-
-            // Iterate through the received messages and create message elements
-            response.data.forEach((message) => {
-                var messageElement = createMessageElement(message.role, message.content);
-                conversationView.appendChild(messageElement);
-            });
-        })
-        .catch((error) => console.error("Error loading chat messages:", error));
-}
