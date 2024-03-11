@@ -8,6 +8,7 @@ from django.conf import settings
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+import tempfile
 
 
 load_dotenv(dotenv_path=os.path.join(settings.BASE_DIR, '.env'))
@@ -42,24 +43,58 @@ def newChat(request):
     if request.method == 'POST':
         file = request.FILES.get('file')
         if file:
-            try:
-                thread = client.beta.threads.create()
-                chat_id = uuid.uuid4()
-                chat_details = Chat_Details(file_name=file.name)
-                chat_details._id = chat_id
-                chat_details.thread_id = thread.id
-                chat_details.file.save(file.name, file)
-                new_chat = {'id': chat_details._id, 'title': chat_details.file_name}
-                return JsonResponse(new_chat)
+            # try:
+            chat_id = uuid.uuid4()
+            chat_details = Chat_Details(file_name=file.name)
+            chat_details._id = chat_id
+            chat_details.save()
+            temp_file = tempfile.NamedTemporaryFile(delete=False,dir=os.path.join(settings.MEDIA_ROOT, 'files'))
+            print(temp_file.name)
+            with open(temp_file.name, 'wb') as destination:
+                for chunk in file.chunks():
+                    destination.write(chunk)
+            file_path = os.path.join(settings.MEDIA_ROOT, 'files', temp_file.name)
+            
+            # while True:
+            #     with open(file_path, 'r') as file:
+            #     # Perform operations on the file, e.g., read its contents
+            #         file_contents = file.read()
+            #         if file_contents:
+            #             break
+            
+            # file_path = os.path.join(settings.MEDIA_ROOT, 'files', file.name)
+            uploaded_file=client.files.create(
+                    file=open(file_path,"rb"),
+                    purpose="assistants",)
+            
+            my_assistant = client.beta.assistants.create(
+            instructions="You are an teacher assistant bot, and you have access to files to answer questions about it.",
+            name="File handler",
+            tools=[{"type": "retrieval"},{"type": "retrieval"}],
+            model="gpt-3.5-turbo-1106",
+            file_ids=[uploaded_file.id]
+            )
+            thread = client.beta.threads.create()
+            
+            
+            
+            chat_detail = get_object_or_404(Chat_Details,_id=chat_id)
+            chat_detail.thread_id = thread.id
+            chat_detail.assistant_id = my_assistant.id
+            chat_detail.openai_file_id=uploaded_file.id
+            chat_detail.save()
+            new_chat = {'id': chat_details._id, 'title': chat_details.file_name}
+            return JsonResponse(new_chat)
 
-            except Exception as e:
-                return JsonResponse({'error': f'Error saving the file: {str(e)}'}, status=500)
+            # except Exception as e:
+            #     return JsonResponse({'error': f'Error saving the file: {str(e)}'}, status=500)
         else:
             return JsonResponse({'error': 'No file provided'}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def loadChat(request,id):
+    print('its here')
     chat_details = get_object_or_404(Chat_Details,_id=id)
     thread_id = chat_details.thread_id
     messages = client.beta.threads.messages.list(thread_id=thread_id,order="asc")
@@ -88,33 +123,34 @@ def getResponse(request):
     if request.method == 'POST':
         chat_id = request.POST.get('chatId')
         message_text = request.POST.get('messageText')
-        chat_details = get_object_or_404(Chat_Details,_id=chat_id)
-        thread_id = chat_details.thread_id
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
+        print(chat_id,message_text)
+        chat_detail = get_object_or_404(Chat_Details,_id=chat_id)
+        
+        message = client.beta.threads.messages.create(
+            thread_id = chat_detail.thread_id,
             role="user",
-            content=message_text
+            content=message_text,
         )
-        runs = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id='asst_3hgzIUaQ2i03TSme0FRAUVAh'
+        run = client.beta.threads.runs.create(
+            thread_id=chat_detail.thread_id,
+            assistant_id=chat_detail.assistant_id
         )
         while True:
             runs = client.beta.threads.runs.retrieve(
-                run_id=runs.id,
-                thread_id=thread_id
+                run_id=run.id,
+                thread_id=chat_detail.thread_id
             )
-            if runs.status in ["queued","in_progress","cancelling"]:
+            if runs.status not in ["queued","in_progress","cancelling"]:
                 break
         
-        message = client.beta.threads.messages.list(thread_id=thread_id,order="desc",limit=1)
+        message = client.beta.threads.messages.list(thread_id=chat_detail.thread_id,order="desc",limit=1)
         print(message)
         # conversation = Conversation.objects.create(
         #     file_details_id=id,
         #     role='user',
         #     content=message_text
         # )
-        print(chat_id,message_text)
+        print(message.data[0].content[0].text.value)
         
         return JsonResponse({'status': message.data[0].content[0].text.value})
     return JsonResponse({'error': 'Invalid request method'})
