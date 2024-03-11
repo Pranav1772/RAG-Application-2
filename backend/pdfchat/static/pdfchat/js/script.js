@@ -26,6 +26,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleNewChatButtonClick() {
         const mainTag = document.querySelector("main");
         const dynamicHTML = `
+            <div class="view new-chat-view">
+                <div class="logo">ChatWTF</div>
+            </div>
+            <div class="view conversation-view"></div>
             <div id="message-form">
                 <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
                     <div class="upload-field">
@@ -36,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         `;
         mainTag.innerHTML = dynamicHTML;
-
+        showView(".conversation-view");
         const uploadForm = document.getElementById("upload-form");
         uploadForm.addEventListener("submit", handleUploadFormSubmit);
     }
@@ -136,6 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const hiddenChatId = document.getElementById("hidden-chatId").value;
         const messageText = document.getElementById("message").value;
         console.log(hiddenChatId, messageText);
+        document.getElementById("message").value = "";
         const conversationView = document.querySelector(".view.conversation-view");
         const userMessageElement = createMessageElement("user", messageText);
         conversationView.appendChild(userMessageElement);
