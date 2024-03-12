@@ -48,7 +48,8 @@ def newChat(request):
             chat_details = Chat_Details(file_name=file.name)
             chat_details._id = chat_id
             chat_details.save()
-            temp_file = tempfile.NamedTemporaryFile(delete=False,dir=os.path.join(settings.MEDIA_ROOT, 'files'))
+            _, extension = os.path.splitext(file.name)
+            temp_file = tempfile.NamedTemporaryFile(delete=False,dir=os.path.join(settings.MEDIA_ROOT, 'files'),suffix=extension)
             print(temp_file.name)
             with open(temp_file.name, 'wb') as destination:
                 for chunk in file.chunks():
@@ -70,7 +71,7 @@ def newChat(request):
             my_assistant = client.beta.assistants.create(
             instructions="You are an teacher assistant bot, and you have access to files to answer questions about it.",
             name="File handler",
-            tools=[{"type": "retrieval"},{"type": "retrieval"}],
+            tools=[{"type": "retrieval"},{"type": "code_interpreter"}],
             model="gpt-3.5-turbo-1106",
             file_ids=[uploaded_file.id]
             )
@@ -150,7 +151,7 @@ def getResponse(request):
         #     role='user',
         #     content=message_text
         # )
-        print(message.data[0].content[0].text.value)
+        print(message.data[0].content[0].type)
         
         return JsonResponse({'status': message.data[0].content[0].text.value})
     return JsonResponse({'error': 'Invalid request method'})
