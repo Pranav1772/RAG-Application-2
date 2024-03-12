@@ -30,16 +30,7 @@ def homepage(request):
     context = {'my_data_list': my_data_list}
     return render(request,'pdfchat/index.html',context)
 
-def newChat(request):
-    
-    # my_assistant = client.beta.assistants.create(
-    #     instructions="You are an teacher assistant bot, and you have access to files to answer questions about it.",
-    #     name="File handler",
-    #     tools=[{"type": "retrieval"}],
-    #     model="gpt-3.5-turbo-1106",
-    # )
-    # print(my_assistant)
-    
+def newChat(request):   
     if request.method == 'POST':
         file = request.FILES.get('file')
         if file:
@@ -51,22 +42,16 @@ def newChat(request):
             _, extension = os.path.splitext(file.name)
             temp_file = tempfile.NamedTemporaryFile(delete=False,dir=os.path.join(settings.MEDIA_ROOT, 'files'),suffix=extension)
             print(temp_file.name)
+            
             with open(temp_file.name, 'wb') as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
             file_path = os.path.join(settings.MEDIA_ROOT, 'files', temp_file.name)
             
-            # while True:
-            #     with open(file_path, 'r') as file:
-            #     # Perform operations on the file, e.g., read its contents
-            #         file_contents = file.read()
-            #         if file_contents:
-            #             break
-            
-            # file_path = os.path.join(settings.MEDIA_ROOT, 'files', file.name)
             uploaded_file=client.files.create(
                     file=open(file_path,"rb"),
                     purpose="assistants",)
+            os.remove(file_path)
             
             my_assistant = client.beta.assistants.create(
             instructions="You are an teacher assistant bot, and you have access to files to answer questions about it.",
