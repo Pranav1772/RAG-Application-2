@@ -1,8 +1,11 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import Chat_Details
 import uuid
 from django.shortcuts import get_object_or_404
+import json
+from io import BytesIO
+from PIL import Image
 
 from django.conf import settings
 import os
@@ -54,7 +57,7 @@ def newChat(request):
             os.remove(file_path)
             
             my_assistant = client.beta.assistants.create(
-            instructions="You are an teacher assistant bot, and you have access to files to answer questions about it.",
+            instructions="You have access to the files to answer user questions about company information. Extract the text from each file and use the content from the file to answer each question and when data visualization is asked then create it and always upload the file and it should alway be in Image(PNG) format provide it with file path",
             name="File handler",
             tools=[{"type": "retrieval"},{"type": "code_interpreter"}],
             model="gpt-3.5-turbo-1106",
@@ -83,25 +86,34 @@ def loadChat(request,id):
     print('its here')
     chat_details = get_object_or_404(Chat_Details,_id=id)
     thread_id = chat_details.thread_id
-    messages = client.beta.threads.messages.list(thread_id=thread_id,order="asc")
+    messages = client.beta.threads.messages.list(thread_id=thread_id,order="asc",limit=50)
 
     message_list=[]
-    
+    count = 0
     for message in messages.data:
         # print(message)
-        print(message.content[0].text.value)
-        message_list.append({
-            'role':message.role,
-            'content':message.content[0].text.value
-        })
-    
-    # my_data_list = [
-    #     {'role': 'user', 'content': 'Hello'},
-    #     {'role': 'assistant', 'content': 'How can I assist you today'},
-    #     {'role': 'user', 'content': 'what is the timing right now'},
-    #     {'role': 'assistant', 'content': "It's 10:30 PM"},
-    # ]
+        # Check if the content is text or image_file
+        if message.content[0].type == 'text':
+            message_list.append({
+                'role':message.role,
+                'content':message.content[0].text.value
+            })
+        elif message.content[0].type == 'image_file':
+            message_list.append({
+                'role':message.role,
+                'content':message.content[0].image_file.file_id
+            })
+            image_data = client.files.content(message.content[1].text.annotations[0].file_path.file_id)
+            image_data_bytes = image_data.read()
+            with open("my-image"+str(count)+".png", "wb") as file:
+                file.write(image_data_bytes)
+            count=+1
     print(id)
+    
+    # image_data_bytes = image_data.read()
+    # print(type(image_data_bytes))
+    # with open("my-image.png", "wb") as file:
+    #     file.write(image_data_bytes)
     response_data = {'id': id, 'messages': message_list}
     return JsonResponse(response_data,safe=False)
 
@@ -130,13 +142,21 @@ def getResponse(request):
                 break
         
         message = client.beta.threads.messages.list(thread_id=chat_detail.thread_id,order="desc",limit=1)
-        print(message)
-        # conversation = Conversation.objects.create(
-        #     file_details_id=id,
-        #     role='user',
-        #     content=message_text
-        # )
-        print(message.data[0].content[0].type)
+        if message.data[0].content[0].type == 'text':
+            print(message.data[0].content[0].text.value)
+            # # response= "<pre>"+message.data[0].content[0].text.value+"</pre>"
+            # return HttpResponse(message.data[0].content[0].text.value)
+            return JsonResponse({'status': message.data[0].content[0].text.value})    
+        else:
+            print(message)
+            print((client.files.retrieve(message.data[0].content[0].image_file.file_id)).bytes)
+            print(message.data[0].content[0].image_file.file_id)
+            image=client.files.content(message.data[0].content[1].text.annotations[0].file_path.file_id)
+            image_data_bytes = image.read()
+            print(type(image_data_bytes))
+            with open("my-image.png", "wb") as file:
+                file.write(image_data_bytes)
+            return JsonResponse({'status': message.data[0].content[0].image_file.file_id})
         
-        return JsonResponse({'status': message.data[0].content[0].text.value})
+        
     return JsonResponse({'error': 'Invalid request method'})

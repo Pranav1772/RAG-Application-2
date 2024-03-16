@@ -511,3 +511,8 @@ p {
     margin-bottom: 10px;
     margin-top: 10px;
 }
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word; /* for IE */
+    width: 100%; /* Ensures the pre tag doesn't exceed the screen width */
+}
