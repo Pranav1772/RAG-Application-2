@@ -233,7 +233,6 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch((error) => console.error("Error loading chat messages:", error));
     }
     function createMessageElement(role, content) {
-        console.log(typeof content);
         const messageElement = document.createElement("div");
         messageElement.className = `${role} message`;
 
@@ -247,6 +246,17 @@ document.addEventListener("DOMContentLoaded", function () {
         const contentElement = document.createElement("div");
         contentElement.className = "content";
 
+        // Declare preElement outside the conditional blocks
+        let preElement;
+
+        if (role === "user") {
+            // If role is user, create a <p> element
+            preElement = document.createElement("p");
+        } else {
+            // If role is not user, create a <pre> element
+            preElement = document.createElement("pre");
+        }
+
         // Regular expression to match code sections surrounded by ```
         const codeRegex = /```(\w+)\n(.*?)```/gs;
         let match;
@@ -256,13 +266,11 @@ document.addEventListener("DOMContentLoaded", function () {
         while ((match = codeRegex.exec(content)) !== null) {
             // Add the non-code content between matches
             const nonCodeContent = content.substring(lastIndex, match.index);
-            contentElement.appendChild(document.createTextNode(nonCodeContent));
+            const nonCodeTextNode = document.createTextNode(nonCodeContent);
+            preElement.appendChild(nonCodeTextNode);
 
             // Extract language identifier from the match
             const language = match[1].toLowerCase(); // Get the language name and convert to lowercase
-
-            // Create a <pre> element for each code section
-            const preElement = document.createElement("pre");
 
             // Create a <code> element for each code section
             const codeElement = document.createElement("code");
@@ -277,15 +285,16 @@ document.addEventListener("DOMContentLoaded", function () {
             // Append the <code> element to the <pre> element
             preElement.appendChild(codeElement);
 
-            // Append the <pre> element to the content element
-            contentElement.appendChild(preElement);
-
             lastIndex = match.index + match[0].length;
         }
 
         // Add any remaining non-code content after the last match
         const remainingContent = content.substring(lastIndex);
-        contentElement.appendChild(document.createTextNode(remainingContent));
+        const remainingTextNode = document.createTextNode(remainingContent);
+        preElement.appendChild(remainingTextNode);
+
+        // Append the <pre> element to the content element
+        contentElement.appendChild(preElement);
 
         // Append content element to message element
         identityElement.appendChild(userIconElement);
