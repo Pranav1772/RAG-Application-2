@@ -27,21 +27,39 @@ document.addEventListener("DOMContentLoaded", function () {
         const mainTag = document.querySelector("main");
         const dynamicHTML = `
             <div class="view new-chat-view">
-                <div class="logo">ChatWTF</div>
+                <div class="logo">
+                    <pre>
+KNAPDS: 
+Knowledge Processing and Data Analysis Navigator System
+                    </pre>
+                </div>
             </div>
             <div class="view conversation-view"></div>
+            <div class="logo">
+                    <pre>
+KNAPDS: 
+Knowledge Processing and Data Analysis Navigator System
+                    </pre>
+                </div>
             <div id="message-form">
                 <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
                     <div class="upload-field">
                         Upload file: <input type="file" id="upload-file" name="file" />
-                        <button type="submit" id="hidden-submit-button"></button>
-                    </div>                       
+                        <button type="submit" id="hidden-submit-button" style="display: none;"></button>
+                    </div>
                 </form>
             </div>
         `;
+        mainTag.innerHTML = "";
         mainTag.innerHTML = dynamicHTML;
         showView(".conversation-view");
         const uploadForm = document.getElementById("upload-form");
+        const fileInput = document.getElementById("upload-file");
+
+        fileInput.addEventListener("change", function () {
+            submit_btn = document.getElementById("hidden-submit-button");
+            submit_btn.click();
+        });
         uploadForm.addEventListener("submit", handleUploadFormSubmit);
     }
 
@@ -110,12 +128,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button class="send-button"><i class="fa fa-paper-plane"></i></button>
                     </div>
                     <div class="disclaimer">
-                        This is a ChatGPT UI Clone for personal use and educational purposes only.
+                        <!--// This is a ChatGPT UI Clone for personal use and educational purposes only.-->
                     </div>
                 </div>
             `;
             mainTag.innerHTML = dynamicHTML;
             showView(".conversation-view");
+            const messageBox = document.getElementById("message");
+            messageBox.addEventListener("input", function () {
+                messageBox.style.height = "auto";
+                let height = messageBox.scrollHeight + 2;
+                if (height > 200) {
+                    height = 200;
+                }
+                messageBox.style.height = height + "px";
+            });
             const sendButton = document.querySelector(".send-button");
             sendButton.addEventListener("click", handleSendButtonClick);
         });
@@ -156,7 +183,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 headers: { "X-CSRFToken": csrfToken },
             })
             .then(handleServerResponse)
-            .catch(handleServerError);
+            .catch(handleServerError)
+            .finally(() => {
+                // Reset the textarea height to its original size
+                const textarea = document.getElementById("message");
+                textarea.style.height = ""; // Reset to default size
+                console.log("Textarea size reset.");
+            });
         console.log("this worked2");
     }
 
@@ -181,6 +214,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelectorAll(".conversation-button").forEach((button) => {
         button.addEventListener("click", function () {
+            // Remove "clicked" class from all buttons before adding to clicked one
+            document.querySelectorAll(".conversation-button").forEach((btn) => {
+                const parentElement = btn.parentNode;
+                parentElement.classList.remove("active");
+                btn.classList.remove("clicked");
+            });
+
+            // Toggle active class
+            button.classList.toggle("active");
+
+            //click button to add color
+            button.classList.add("clicked");
+
+            // Add loading class
+            button.classList.add("loading");
+
+            const parentElement = button.parentNode;
+
+            // Add your desired class to the parent element
+            parentElement.classList.add("active");
+
             showView(".conversation-view");
             const chatId = button.dataset.chatId;
             console.log(chatId);
@@ -189,6 +243,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function loadChatMessages(chatId) {
+        var trigger = 20;
         axios
             .get(`/load_chat/${chatId}/`)
             .then((response) => {
@@ -215,6 +270,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 textarea.id = "message";
                 textarea.rows = "1";
                 textarea.placeholder = "Send a message";
+                textarea.addEventListener("keyup", function () {
+                    textarea.style.height = "auto";
+                    let height = textarea.scrollHeight + 2;
+                    if (height > 200) {
+                        height = 200;
+                    }
+                    textarea.style.height = height + "px";
+                });
 
                 const sendButton = document.createElement("button");
                 sendButton.className = "send-button";
@@ -247,15 +310,7 @@ document.addEventListener("DOMContentLoaded", function () {
         contentElement.className = "content";
 
         // Declare preElement outside the conditional blocks
-        let preElement;
-
-        if (role === "user") {
-            // If role is user, create a <p> element
-            preElement = document.createElement("p");
-        } else {
-            // If role is not user, create a <pre> element
-            preElement = document.createElement("pre");
-        }
+        const preElement = document.createElement("pre");
 
         // Regular expression to match code sections surrounded by ```
         const codeRegex = /```(\w+)\n(.*?)```/gs;

@@ -20,7 +20,7 @@ def createAssistants(file_path):
                 4. Clarification Requests:
                     If a question requires information not present in the files, politely inform the user and attempt to rephrase the question based on the available data.
                 5. Response Accuracy:
-                    Remember, the accuracy of your responses is directly tied to the accuracy of the data within the uploaded files.    
+                    Remember, the accuracy of your responses is directly tied to the accuracy of the data within the uploaded files.
                 """,
                 name="File handler",
                 tools=[{"type": "retrieval"},{"type": "code_interpreter"}],
