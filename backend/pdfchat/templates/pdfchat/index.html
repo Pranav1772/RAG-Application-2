@@ -25,53 +25,13 @@
                         <button class="conversation-button" data-chat-id="{{ item.id }}"><i class="fa fa-message fa-regular"></i> {{ item.title }}</button>
                         <div class="fade"></div>
                         <div class="edit-buttons">
-                            <button><i class="fa fa-edit"></i></button>
-                            <button><i class="fa fa-trash"></i></button>
+                            <button class="edit-button" data-chat-id="{{ item.id }}"><i class="fa fa-edit"></i></button>
+                            <button class="delete-button" data-chat-id="{{ item.id }}"><i class="fa fa-trash"></i></button>
                         </div>
                     </li>
                     {% endfor %}
-                    <li>
-                        <button class="conversation-button"><i class="fa fa-message fa-regular"></i> This is a conversation title</button>
-                        <div class="fade"></div>
-                        <div class="edit-buttons">
-                            <button><i class="fa fa-edit"></i></button>
-                            <button><i class="fa fa-trash"></i></button>
-                        </div>
-                    </li>
-                    <li>
-                        <button class="conversation-button"><i class="fa fa-message fa-regular"></i> This is a conversation title</button>
-                        <div class="fade"></div>
-                        <div class="edit-buttons">
-                            <button><i class="fa fa-edit"></i></button>
-                            <button><i class="fa fa-trash"></i></button>
-                        </div>
-                    </li>
-                    <!-- <li class="grouping">Previous 7 days</li> -->
-                    <li>
-                        <button class="conversation-button"><i class="fa fa-message fa-regular"></i> This is a conversation title</button>
-                        <div class="fade"></div>
-                        <div class="edit-buttons">
-                            <button><i class="fa fa-edit"></i></button>
-                            <button><i class="fa fa-trash"></i></button>
-                        </div>
-                    </li>
                 </ul>
             </div>
-            {% comment %}
-            <div class="user-menu">
-                <button>
-                    <i class="user-icon">u</i>
-                    username
-                    <i class="fa fa-ellipsis dots"></i>
-                </button>
-                <ul>
-                    <li><button>My plan</button></li>
-                    <li><button>Custom instructions</button></li>
-                    <li><button>Settings &amp; Beta</button></li>
-                    <li><button>Log out</button></li>
-                </ul>
-            </div>
-            {% endcomment %}
         </nav>
         <main>
             <div class="view new-chat-view">

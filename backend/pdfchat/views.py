@@ -6,6 +6,7 @@ import uuid
 import os
 from django.conf import settings
 import tempfile
+import base64
 
 def homepage(request):
     file_details_list = Chat_Details.objects.all()
@@ -53,6 +54,28 @@ def getResponse(request):
         message_text = request.POST.get('messageText')
         chat_detail = get_object_or_404(Chat_Details, _id=chat_id)
         reply = openai_api_call.getReply(message_text,chat_detail.thread_id,chat_detail.assistant_id)
-    return JsonResponse({'status': reply})    
+        if reply['type'] == "text":
+            return JsonResponse({'id':'4','content':{'type':'text','message': reply['message']}})
+        else:
+            image_base64 = base64.b64encode(reply['image']).decode('utf-8')
+            return JsonResponse({'id':'4','content':{'type':'image','image':image_base64}})
+
+def deleteChat(request,id):
+    chat_detail = get_object_or_404(Chat_Details, _id=id)
+    chat_detail.delete()
+    return JsonResponse({'message':'chat deleted'})
+    
+def updateChat(request):
+    if request.method == 'POST':
+        chat_id = request.POST.get('chatId')
+        new_name = request.POST.get('new_name')
+        chat_detail = get_object_or_404(Chat_Details, _id=chat_id)
+        chat_detail.file_name = new_name
+        chat_detail.save()
+        return JsonResponse({'message':'success'})
+    else:
+        # Handle other HTTP methods if needed
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 

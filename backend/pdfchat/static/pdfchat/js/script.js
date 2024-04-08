@@ -2,16 +2,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const sidebar = document.querySelector("#sidebar");
     const hideSidebar = document.querySelector(".hide-sidebar");
     const newChatButton = document.querySelector(".new-chat");
-    const userMenu = document.querySelector(".user-menu ul");
-    const showUserMenu = document.querySelector(".user-menu button");
     const models = document.querySelectorAll(".model-selector button");
 
     hideSidebar.addEventListener("click", () => sidebar.classList.toggle("hidden"));
-
-    showUserMenu.addEventListener("click", () => {
-        userMenu.classList.toggle("show");
-        setTimeout(() => userMenu.classList.toggle("show-animate"), 200);
-    });
 
     models.forEach((model) => {
         model.addEventListener("click", () => {
@@ -26,14 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleNewChatButtonClick() {
         const mainTag = document.querySelector("main");
         const dynamicHTML = `
-            <div class="view new-chat-view">
-                <div class="logo">
-                    <pre>
-KNAPDS: 
-Knowledge Processing and Data Analysis Navigator System
-                    </pre>
-                </div>
-            </div>
+            <div class="view new-chat-view"></div>
             <div class="view conversation-view"></div>
             <div class="logo">
                     <pre>
@@ -43,8 +29,8 @@ Knowledge Processing and Data Analysis Navigator System
                 </div>
             <div id="message-form">
                 <form id="upload-form" action="/new_chat/" method="post" enctype="multipart/form-data">
-                    <div class="upload-field">
-                        Upload file: <input type="file" id="upload-file" name="file" />
+                    <div class="upload-field upload-file-custom-input">
+                        <input type="file" id="upload-file" name="file" />
                         <button type="submit" id="hidden-submit-button" style="display: none;"></button>
                     </div>
                 </form>
@@ -169,7 +155,7 @@ Knowledge Processing and Data Analysis Navigator System
         console.log(hiddenChatId, messageText);
         document.getElementById("message").value = "";
         const conversationView = document.querySelector(".view.conversation-view");
-        const userMessageElement = createMessageElement("user", messageText);
+        const userMessageElement = createMessageElement("user", messageText, "handleSendButtonClick");
         conversationView.appendChild(userMessageElement);
 
         const csrfToken = getCookie("csrftoken");
@@ -194,10 +180,11 @@ Knowledge Processing and Data Analysis Navigator System
     }
 
     function handleServerResponse(response) {
-        const assistantMessageElement = createMessageElement("assistant", response.data.status);
+        // const assistantMessageElement = createMessageElement("assistant", response.data.status);
+        const assistantMessageElement = createMessageElement("assistant", response.data.content, "handleServerResponse");
         const conversationView = document.querySelector(".view.conversation-view");
         conversationView.appendChild(assistantMessageElement);
-        console.log("Server response:", response.data);
+        console.log("Server response:", response.data.content);
     }
 
     function handleServerError(error) {
@@ -211,6 +198,47 @@ Knowledge Processing and Data Analysis Navigator System
 
         document.querySelector(viewSelector).style.display = "flex";
     }
+
+    document.querySelectorAll(".delete-button").forEach((button) => {
+        button.addEventListener("click", function () {
+            const chatId = button.dataset.chatId;
+            console.log(chatId);
+            const confirmed = window.confirm("Are you sure you want to delete this chat?");
+            console.log(confirmed);
+            if (confirmed) {
+                axios.get(`/delete_chat/${chatId}/`).then((response) => {
+                    const message = response.data.message;
+                    window.location.reload();
+                    console.log(message);
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll(".edit-button").forEach((button) => {
+        button.addEventListener("click", function () {
+            const chatId = button.dataset.chatId;
+            const userInput = window.prompt("Please enter new name:");
+            const formData = new FormData();
+            const csrfToken = getCookie("csrftoken");
+            formData.append("chatId", chatId);
+            formData.append("new_name", userInput);
+            axios
+                .post("/update_chat/", formData, {
+                    headers: { "X-CSRFToken": csrfToken },
+                })
+                .then((response) => {
+                    const message = response.data.message;
+                    if (message === "success") {
+                        const conversationButton = document.querySelector(`.conversation-button[data-chat-id="${chatId}"]`);
+                        if (conversationButton) {
+                            conversationButton.innerHTML = `<i class="fa fa-message fa-regular"></i> ${userInput}`;
+                        }
+                    }
+                });
+            console.log("this worked2");
+        });
+    });
 
     document.querySelectorAll(".conversation-button").forEach((button) => {
         button.addEventListener("click", function () {
@@ -254,7 +282,7 @@ Knowledge Processing and Data Analysis Navigator System
                 conversationView.innerHTML = "";
 
                 messages.forEach((message) => {
-                    const messageElement = createMessageElement(message.role, message.content);
+                    const messageElement = createMessageElement(message.role, message.content, "loadChatMessages");
                     conversationView.appendChild(messageElement);
                 });
 
@@ -288,14 +316,20 @@ Knowledge Processing and Data Analysis Navigator System
                 messageWrapper.appendChild(sendButton);
 
                 const messageForm = document.getElementById("message-form");
+
+                // Remove the logo element that comes before messageForm
+                const logoElement = messageForm.previousElementSibling;
+                if (logoElement && logoElement.classList.contains("logo")) {
+                    logoElement.remove();
+                }
+
                 messageForm.innerHTML = "";
                 messageForm.appendChild(messageWrapper);
-
                 sendButton.addEventListener("click", handleSendButtonClick);
             })
             .catch((error) => console.error("Error loading chat messages:", error));
     }
-    function createMessageElement(role, content) {
+    function createMessageElement(role, content, callingFunctionName) {
         const messageElement = document.createElement("div");
         messageElement.className = `${role} message`;
 
@@ -316,38 +350,81 @@ Knowledge Processing and Data Analysis Navigator System
         const codeRegex = /```(\w+)\n(.*?)```/gs;
         let match;
         let lastIndex = 0;
+        console.log(content);
 
-        // Iterate over all matches of code sections
-        while ((match = codeRegex.exec(content)) !== null) {
-            // Add the non-code content between matches
-            const nonCodeContent = content.substring(lastIndex, match.index);
-            const nonCodeTextNode = document.createTextNode(nonCodeContent);
-            preElement.appendChild(nonCodeTextNode);
+        if (callingFunctionName === "handleSendButtonClick") {
+            // Iterate over all matches of code sections
+            while ((match = codeRegex.exec(content)) !== null) {
+                // Add the non-code content between matches
+                const nonCodeContent = content.substring(lastIndex, match.index);
+                const nonCodeTextNode = document.createTextNode(nonCodeContent);
+                preElement.appendChild(nonCodeTextNode);
 
-            // Extract language identifier from the match
-            const language = match[1].toLowerCase(); // Get the language name and convert to lowercase
+                // Extract language identifier from the match
+                const language = match[1].toLowerCase(); // Get the language name and convert to lowercase
 
-            // Create a <code> element for each code section
-            const codeElement = document.createElement("code");
-            codeElement.textContent = match[2]; // Get the code content without ```
+                // Create a <code> element for each code section
+                const codeElement = document.createElement("code");
+                codeElement.textContent = match[2]; // Get the code content without ```
 
-            // Add class based on the language identifier
-            codeElement.className = `language-${language}`;
+                // Add class based on the language identifier
+                codeElement.className = `language-${language}`;
 
-            // Apply highlight.js to the code element
-            hljs.highlightElement(codeElement);
+                // Apply highlight.js to the code element
+                hljs.highlightElement(codeElement);
 
-            // Append the <code> element to the <pre> element
-            preElement.appendChild(codeElement);
+                // Append the <code> element to the <pre> element
+                preElement.appendChild(codeElement);
 
-            lastIndex = match.index + match[0].length;
+                lastIndex = match.index + match[0].length;
+            }
+
+            // Add any remaining non-code content after the last match
+            const remainingContent = content.substring(lastIndex);
+            const remainingTextNode = document.createTextNode(remainingContent);
+            preElement.appendChild(remainingTextNode);
+        } else {
+            if (content.type === "text") {
+                // console.log(content.message);
+                // Iterate over all matches of code sections
+                while ((match = codeRegex.exec(content.message)) !== null) {
+                    // Add the non-code content between matches
+                    const nonCodeContent = content.message.substring(lastIndex, match.index);
+                    const nonCodeTextNode = document.createTextNode(nonCodeContent);
+                    preElement.appendChild(nonCodeTextNode);
+
+                    // Extract language identifier from the match
+                    const language = match[1].toLowerCase(); // Get the language name and convert to lowercase
+
+                    // Create a <code> element for each code section
+                    const codeElement = document.createElement("code");
+                    codeElement.textContent = match[2]; // Get the code content without ```
+
+                    // Add class based on the language identifier
+                    codeElement.className = `language-${language}`;
+
+                    // Apply highlight.js to the code element
+                    hljs.highlightElement(codeElement);
+
+                    // Append the <code> element to the <pre> element
+                    preElement.appendChild(codeElement);
+
+                    lastIndex = match.index + match[0].length;
+                }
+                // Add any remaining non-code content after the last match
+                const remainingContent = content.message.substring(lastIndex);
+                const remainingTextNode = document.createTextNode(remainingContent);
+                preElement.appendChild(remainingTextNode);
+            } else if (content.type === "image") {
+                // Handle image response
+                const imgElement = document.createElement("img");
+                imgElement.src = "data:image/png;base64," + content.image; // Assuming image format is PNG
+                imgElement.alt = "Image from server"; // Optional: Set alt attribute for accessibility
+                imgElement.height = 600;
+                imgElement.width = 800;
+                preElement.appendChild(imgElement);
+            }
         }
-
-        // Add any remaining non-code content after the last match
-        const remainingContent = content.substring(lastIndex);
-        const remainingTextNode = document.createTextNode(remainingContent);
-        preElement.appendChild(remainingTextNode);
-
         // Append the <pre> element to the content element
         contentElement.appendChild(preElement);
 
